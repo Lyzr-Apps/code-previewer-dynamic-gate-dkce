@@ -1,0 +1,32 @@
+{
+  "app_name": "WebCraft - AI Website Generator",
+  "pattern": "single_agent",
+  "agents": [
+    {
+      "node_id": "website_generator_agent",
+      "agent_id": "698f00f24fde97bfe1d6bc32",
+      "name": "Website Generator Agent",
+      "description": "AI-powered web developer that transforms natural language website descriptions into complete, valid, responsive HTML/CSS code.",
+      "model": "gpt-4.1",
+      "provider": "OpenAI",
+      "temperature": 0.7,
+      "top_p": 0.95,
+      "agent_type": "text",
+      "capabilities": {
+        "image_output": false,
+        "voice": false,
+        "file_output": false,
+        "knowledge_base": false,
+        "tools": false,
+        "scheduled": false
+      },
+      "response_schema": {
+        "description": "string",
+        "code": "string"
+      }
+    }
+  ],
+  "knowledge_bases": [],
+  "schedules": [],
+  "created_at": "2026-02-13"
+}

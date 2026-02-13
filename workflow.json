@@ -1,0 +1,52 @@
+{
+  "workflow": {
+    "nodes": [
+      {
+        "id": "input_node",
+        "type": "Input",
+        "label": "User Website Description",
+        "nodeCategory": "input"
+      },
+      {
+        "id": "website_generator_agent",
+        "type": "Agent",
+        "label": "Website Generator Agent",
+        "nodeCategory": "agent"
+      },
+      {
+        "id": "output_node",
+        "type": "Output",
+        "label": "Generated HTML/CSS Code",
+        "nodeCategory": "end"
+      }
+    ],
+    "edges": [
+      {
+        "source": "input_node",
+        "target": "website_generator_agent"
+      },
+      {
+        "source": "website_generator_agent",
+        "target": "output_node"
+      }
+    ]
+  },
+  "agents": [
+    {
+      "node_id": "website_generator_agent",
+      "agent_id": "698f00f24fde97bfe1d6bc32",
+      "name": "Website Generator Agent",
+      "model": "gpt-4.1",
+      "provider": "OpenAI",
+      "temperature": 0.7,
+      "top_p": 0.95,
+      "capabilities": {
+        "image_output": false,
+        "voice": false,
+        "file_output": false,
+        "knowledge_base": false,
+        "tools": false
+      }
+    }
+  ]
+}

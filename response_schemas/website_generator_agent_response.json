@@ -1,0 +1,24 @@
+{
+  "agent_name": "Website Generator Agent",
+  "agent_id": "698f00f24fde97bfe1d6bc32",
+  "description": "AI-powered web developer that transforms natural language website descriptions into complete, valid, responsive HTML/CSS code. Handles iterative refinements, understands design terminology, and produces modern web code with live preview capability.",
+  "agent_type": "json",
+  "accessor": "result",
+  "auto_generated": true,
+  "response_schema": {
+    "description": "string",
+    "code": "string"
+  },
+  "example_response": {
+    "description": "Brief description of what was created or changed",
+    "code": "Complete HTML/CSS code for the website"
+  },
+  "has_module_outputs": true,
+  "module_outputs_example": {
+    "artifact_files": [
+      {
+        "file_url": "https://example.com/image.png"
+      }
+    ]
+  }
+}
