@@ -3,12 +3,8 @@
 import { useState, useEffect, useRef, useCallback } from 'react'
 import { callAIAgent } from '@/lib/aiAgent'
 import { copyToClipboard } from '@/lib/clipboard'
-import { ResizablePanelGroup, ResizablePanel, ResizableHandle } from '@/components/ui/resizable'
 import { Button } from '@/components/ui/button'
-import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs'
 import { ScrollArea } from '@/components/ui/scroll-area'
-import { Switch } from '@/components/ui/switch'
-import { Badge } from '@/components/ui/badge'
 import { VscCode, VscDesktopDownload, VscTrash, VscSend, VscCopy, VscCheck } from 'react-icons/vsc'
 import { FiMonitor, FiTablet, FiSmartphone, FiPlus, FiEye, FiTerminal } from 'react-icons/fi'
 
@@ -124,9 +120,9 @@ function TypingIndicator() {
       </div>
       <div className="bg-card border border-border px-4 py-3">
         <div className="flex items-center gap-1.5">
-          <span className="w-1.5 h-1.5 bg-accent rounded-full animate-bounce" style={{ animationDelay: '0ms' }} />
-          <span className="w-1.5 h-1.5 bg-accent rounded-full animate-bounce" style={{ animationDelay: '150ms' }} />
-          <span className="w-1.5 h-1.5 bg-accent rounded-full animate-bounce" style={{ animationDelay: '300ms' }} />
+          <span className="w-1.5 h-1.5 bg-accent animate-bounce" style={{ animationDelay: '0ms', borderRadius: '50%' }} />
+          <span className="w-1.5 h-1.5 bg-accent animate-bounce" style={{ animationDelay: '150ms', borderRadius: '50%' }} />
+          <span className="w-1.5 h-1.5 bg-accent animate-bounce" style={{ animationDelay: '300ms', borderRadius: '50%' }} />
           <span className="ml-2 text-xs text-muted-foreground font-mono">generating...</span>
         </div>
       </div>
@@ -209,16 +205,19 @@ export default function Page() {
   const [inputValue, setInputValue] = useState('')
   const [isGenerating, setIsGenerating] = useState(false)
   const [currentCode, setCurrentCode] = useState('')
-  const [activeTab, setActiveTab] = useState('preview')
+  const [activeTab, setActiveTab] = useState<'preview' | 'code'>('preview')
   const [viewport, setViewport] = useState<'desktop' | 'tablet' | 'mobile'>('desktop')
   const [copied, setCopied] = useState(false)
   const [showSampleData, setShowSampleData] = useState(false)
   const [activeAgentId, setActiveAgentId] = useState<string | null>(null)
   const [sessionId, setSessionId] = useState('')
   const [error, setError] = useState<string | null>(null)
+  const [dividerDragging, setDividerDragging] = useState(false)
+  const [leftPanelWidth, setLeftPanelWidth] = useState(40)
 
   const chatEndRef = useRef<HTMLDivElement>(null)
   const textareaRef = useRef<HTMLTextAreaElement>(null)
+  const containerRef = useRef<HTMLDivElement>(null)
 
   // Initialize session ID on mount
   useEffect(() => {
@@ -229,6 +228,29 @@ export default function Page() {
   useEffect(() => {
     chatEndRef.current?.scrollIntoView({ behavior: 'smooth' })
   }, [messages, isGenerating])
+
+  // Divider drag logic
+  useEffect(() => {
+    if (!dividerDragging) return
+
+    const handleMouseMove = (e: MouseEvent) => {
+      if (!containerRef.current) return
+      const rect = containerRef.current.getBoundingClientRect()
+      const pct = ((e.clientX - rect.left) / rect.width) * 100
+      setLeftPanelWidth(Math.min(65, Math.max(25, pct)))
+    }
+
+    const handleMouseUp = () => {
+      setDividerDragging(false)
+    }
+
+    document.addEventListener('mousemove', handleMouseMove)
+    document.addEventListener('mouseup', handleMouseUp)
+    return () => {
+      document.removeEventListener('mousemove', handleMouseMove)
+      document.removeEventListener('mouseup', handleMouseUp)
+    }
+  }, [dividerDragging])
 
   // Determine which messages to display
   const displayMessages = showSampleData && messages.length === 0 ? SAMPLE_MESSAGES : messages
@@ -252,7 +274,6 @@ export default function Page() {
     setIsGenerating(true)
     setActiveAgentId(AGENT_ID)
 
-    // Reset textarea height
     if (textareaRef.current) {
       textareaRef.current.style.height = 'auto'
     }
@@ -325,7 +346,6 @@ export default function Page() {
 
   const handleTextareaChange = useCallback((e: React.ChangeEvent<HTMLTextAreaElement>) => {
     setInputValue(e.target.value)
-    // Auto-resize
     const el = e.target
     el.style.height = 'auto'
     el.style.height = Math.min(el.scrollHeight, 200) + 'px'
@@ -379,14 +399,25 @@ export default function Page() {
             </div>
             <h1 className="text-sm font-bold font-mono tracking-wide text-foreground">WebCraft</h1>
           </div>
-          <Badge variant="outline" className="text-[10px] font-mono border-accent text-accent px-1.5 py-0">AI</Badge>
+          <span className="text-[10px] font-mono border border-accent text-accent px-1.5 py-0 leading-4 inline-block">AI</span>
         </div>
 
         <div className="flex items-center gap-3">
-          <div className="flex items-center gap-2">
-            <label htmlFor="sample-toggle" className="text-xs text-muted-foreground font-mono cursor-pointer">Sample Data</label>
-            <Switch id="sample-toggle" checked={showSampleData} onCheckedChange={setShowSampleData} className="scale-75" />
-          </div>
+          <button
+            onClick={() => setShowSampleData(!showSampleData)}
+            className={`flex items-center gap-2 text-xs font-mono px-2 py-1 border transition-colors ${
+              showSampleData
+                ? 'border-accent text-accent bg-accent/10'
+                : 'border-border text-muted-foreground hover:text-foreground hover:border-foreground'
+            }`}
+          >
+            <div className={`w-3 h-3 border flex items-center justify-center ${
+              showSampleData ? 'border-accent bg-accent' : 'border-muted-foreground'
+            }`}>
+              {showSampleData && <VscCheck className="w-2 h-2 text-accent-foreground" />}
+            </div>
+            Sample Data
+          </button>
           <Button variant="outline" size="sm" onClick={handleNewProject} className="h-7 gap-1.5 text-xs font-mono border-border">
             <FiPlus className="w-3 h-3" />
             New Project
@@ -394,162 +425,194 @@ export default function Page() {
         </div>
       </header>
 
-      {/* Main Content */}
-      <div className="flex-1 overflow-hidden">
-        <ResizablePanelGroup direction="horizontal">
-          {/* Left Panel - Chat */}
-          <ResizablePanel defaultSize={40} minSize={25} maxSize={60}>
-            <div className="flex flex-col h-full bg-background">
-              {/* Chat Header */}
-              <div className="flex items-center justify-between px-4 py-2 border-b border-border bg-card">
-                <span className="text-xs font-mono text-muted-foreground uppercase tracking-wider">Chat</span>
-                {messages.length > 0 && (
-                  <Button variant="ghost" size="sm" onClick={handleNewProject} className="h-6 gap-1 text-[10px] font-mono text-muted-foreground hover:text-destructive">
-                    <VscTrash className="w-3 h-3" />
-                    Clear
-                  </Button>
-                )}
-              </div>
+      {/* Main Content - Custom Split Panel */}
+      <div
+        ref={containerRef}
+        className="flex-1 flex overflow-hidden"
+        style={{ cursor: dividerDragging ? 'col-resize' : undefined }}
+      >
+        {/* Left Panel - Chat */}
+        <div
+          className="flex flex-col h-full bg-background overflow-hidden"
+          style={{ width: `${leftPanelWidth}%`, minWidth: '250px' }}
+        >
+          {/* Chat Header */}
+          <div className="flex items-center justify-between px-4 py-2 border-b border-border bg-card flex-shrink-0">
+            <span className="text-xs font-mono text-muted-foreground uppercase tracking-wider">Chat</span>
+            {messages.length > 0 && (
+              <Button variant="ghost" size="sm" onClick={handleNewProject} className="h-6 gap-1 text-[10px] font-mono text-muted-foreground hover:text-destructive">
+                <VscTrash className="w-3 h-3" />
+                Clear
+              </Button>
+            )}
+          </div>
 
-              {/* Messages */}
-              <ScrollArea className="flex-1">
-                <div className="py-4">
-                  {displayMessages.length === 0 ? (
-                    <div className="flex flex-col items-center justify-center px-8 py-16 text-center">
-                      <div className="w-12 h-12 border-2 border-border flex items-center justify-center mb-4">
-                        <FiTerminal className="w-5 h-5 text-muted-foreground" />
-                      </div>
-                      <h3 className="text-sm font-semibold font-mono text-foreground mb-2">Start Building</h3>
-                      <p className="text-xs text-muted-foreground leading-relaxed max-w-xs">Describe the website you want to create. The AI will generate complete HTML/CSS code with a live preview.</p>
-                      <div className="mt-4 space-y-1.5">
-                        <p className="text-[10px] font-mono text-muted-foreground uppercase tracking-wider">Try something like:</p>
-                        <p className="text-xs text-accent font-mono">&quot;A portfolio page with dark theme&quot;</p>
-                        <p className="text-xs text-accent font-mono">&quot;A restaurant menu with photos&quot;</p>
-                        <p className="text-xs text-accent font-mono">&quot;A pricing page with 3 tiers&quot;</p>
-                      </div>
-                    </div>
-                  ) : (
-                    displayMessages.map(msg => (
-                      <ChatMessageBubble key={msg.id} message={msg} />
-                    ))
-                  )}
-                  {isGenerating && <TypingIndicator />}
-                  <div ref={chatEndRef} />
-                </div>
-              </ScrollArea>
-
-              {/* Error Display */}
-              {error && (
-                <div className="px-4 py-2 bg-destructive/10 border-t border-destructive/30">
-                  <p className="text-xs text-destructive font-mono">{error}</p>
-                </div>
-              )}
-
-              {/* Input Area */}
-              <div className="border-t border-border bg-card p-3">
-                <div className="flex gap-2 items-end">
-                  <textarea
-                    ref={textareaRef}
-                    value={inputValue}
-                    onChange={handleTextareaChange}
-                    onKeyDown={handleKeyDown}
-                    placeholder="Describe your website..."
-                    disabled={isGenerating}
-                    className="flex-1 bg-input text-foreground text-sm font-mono placeholder:text-muted-foreground px-3 py-2.5 border border-border resize-none focus:outline-none focus:ring-1 focus:ring-ring disabled:opacity-50"
-                    style={{ minHeight: '44px', maxHeight: '200px' }}
-                    rows={1}
-                  />
-                  <Button onClick={handleSubmit} disabled={isGenerating || !inputValue.trim()} className="h-[44px] w-[44px] p-0 bg-primary text-primary-foreground hover:bg-primary/90 flex-shrink-0">
-                    {isGenerating ? (
-                      <div className="w-4 h-4 border-2 border-primary-foreground/30 border-t-primary-foreground animate-spin" style={{ borderRadius: '50%' }} />
-                    ) : (
-                      <VscSend className="w-4 h-4" />
-                    )}
-                  </Button>
-                </div>
-                <div className="flex items-center justify-between mt-1.5">
-                  <span className="text-[10px] text-muted-foreground font-mono">Ctrl+Enter to send</span>
-                  {isGenerating && <span className="text-[10px] text-accent font-mono animate-pulse">Generating...</span>}
-                </div>
-              </div>
-            </div>
-          </ResizablePanel>
-
-          {/* Resize Handle */}
-          <ResizableHandle withHandle />
-
-          {/* Right Panel - Preview & Code */}
-          <ResizablePanel defaultSize={60} minSize={30}>
-            <div className="flex flex-col h-full bg-background">
-              <Tabs value={activeTab} onValueChange={setActiveTab} className="flex flex-col h-full">
-                {/* Preview Header */}
-                <div className="flex items-center justify-between px-4 py-2 border-b border-border bg-card">
-                  <TabsList className="h-8 bg-secondary p-0.5">
-                    <TabsTrigger value="preview" className="h-7 px-3 text-xs font-mono gap-1.5 data-[state=active]:bg-background">
-                      <FiEye className="w-3 h-3" />
-                      Preview
-                    </TabsTrigger>
-                    <TabsTrigger value="code" className="h-7 px-3 text-xs font-mono gap-1.5 data-[state=active]:bg-background">
-                      <VscCode className="w-3 h-3" />
-                      Code
-                    </TabsTrigger>
-                  </TabsList>
-
-                  <div className="flex items-center gap-1">
-                    {/* Viewport Toggles */}
-                    <div className="flex items-center border border-border mr-2">
-                      <button onClick={() => setViewport('desktop')} className={`p-1.5 transition-colors ${viewport === 'desktop' ? 'bg-primary text-primary-foreground' : 'text-muted-foreground hover:text-foreground hover:bg-secondary'}`} title="Desktop">
-                        <FiMonitor className="w-3.5 h-3.5" />
-                      </button>
-                      <button onClick={() => setViewport('tablet')} className={`p-1.5 transition-colors border-l border-r border-border ${viewport === 'tablet' ? 'bg-primary text-primary-foreground' : 'text-muted-foreground hover:text-foreground hover:bg-secondary'}`} title="Tablet">
-                        <FiTablet className="w-3.5 h-3.5" />
-                      </button>
-                      <button onClick={() => setViewport('mobile')} className={`p-1.5 transition-colors ${viewport === 'mobile' ? 'bg-primary text-primary-foreground' : 'text-muted-foreground hover:text-foreground hover:bg-secondary'}`} title="Mobile">
-                        <FiSmartphone className="w-3.5 h-3.5" />
-                      </button>
-                    </div>
-
-                    {/* Actions */}
-                    <Button variant="ghost" size="sm" onClick={handleCopyCode} disabled={!displayCode} className="h-7 gap-1 text-xs font-mono">
-                      {copied ? <VscCheck className="w-3.5 h-3.5 text-accent" /> : <VscCopy className="w-3.5 h-3.5" />}
-                    </Button>
-                    <Button variant="ghost" size="sm" onClick={handleDownload} disabled={!displayCode} className="h-7 gap-1 text-xs font-mono">
-                      <VscDesktopDownload className="w-3.5 h-3.5" />
-                    </Button>
+          {/* Messages */}
+          <ScrollArea className="flex-1">
+            <div className="py-4">
+              {displayMessages.length === 0 ? (
+                <div className="flex flex-col items-center justify-center px-8 py-16 text-center">
+                  <div className="w-12 h-12 border-2 border-border flex items-center justify-center mb-4">
+                    <FiTerminal className="w-5 h-5 text-muted-foreground" />
+                  </div>
+                  <h3 className="text-sm font-semibold font-mono text-foreground mb-2">Start Building</h3>
+                  <p className="text-xs text-muted-foreground leading-relaxed max-w-xs">Describe the website you want to create. The AI will generate complete HTML/CSS code with a live preview.</p>
+                  <div className="mt-4 space-y-1.5">
+                    <p className="text-[10px] font-mono text-muted-foreground uppercase tracking-wider">Try something like:</p>
+                    <p className="text-xs text-accent font-mono">&quot;A portfolio page with dark theme&quot;</p>
+                    <p className="text-xs text-accent font-mono">&quot;A restaurant menu with photos&quot;</p>
+                    <p className="text-xs text-accent font-mono">&quot;A pricing page with 3 tiers&quot;</p>
                   </div>
                 </div>
-
-                {/* Preview Content */}
-                <TabsContent value="preview" className="flex-1 m-0 overflow-hidden">
-                  {displayCode ? (
-                    <div className="h-full flex items-start justify-center bg-secondary p-4 overflow-auto">
-                      <div style={{ width: viewportWidth, maxWidth: '100%', height: '100%' }} className="transition-all duration-300 bg-white shadow-sm border border-border">
-                        <iframe
-                          srcDoc={displayCode}
-                          title="Website Preview"
-                          className="w-full h-full border-0"
-                          sandbox="allow-scripts"
-                          style={{ backgroundColor: 'white' }}
-                        />
-                      </div>
-                    </div>
-                  ) : (
-                    <EmptyPreview />
-                  )}
-                </TabsContent>
-
-                {/* Code Content */}
-                <TabsContent value="code" className="flex-1 m-0 overflow-hidden">
-                  {displayCode ? (
-                    <CodeViewer code={displayCode} onCopy={handleCopyCode} copied={copied} />
-                  ) : (
-                    <EmptyPreview />
-                  )}
-                </TabsContent>
-              </Tabs>
+              ) : (
+                displayMessages.map(msg => (
+                  <ChatMessageBubble key={msg.id} message={msg} />
+                ))
+              )}
+              {isGenerating && <TypingIndicator />}
+              <div ref={chatEndRef} />
             </div>
-          </ResizablePanel>
-        </ResizablePanelGroup>
+          </ScrollArea>
+
+          {/* Error Display */}
+          {error && (
+            <div className="px-4 py-2 bg-destructive/10 border-t border-destructive/30 flex-shrink-0">
+              <p className="text-xs text-destructive font-mono">{error}</p>
+            </div>
+          )}
+
+          {/* Input Area */}
+          <div className="border-t border-border bg-card p-3 flex-shrink-0">
+            <div className="flex gap-2 items-end">
+              <textarea
+                ref={textareaRef}
+                value={inputValue}
+                onChange={handleTextareaChange}
+                onKeyDown={handleKeyDown}
+                placeholder="Describe your website..."
+                disabled={isGenerating}
+                className="flex-1 bg-input text-foreground text-sm font-mono placeholder:text-muted-foreground px-3 py-2.5 border border-border resize-none focus:outline-none focus:ring-1 focus:ring-ring disabled:opacity-50"
+                style={{ minHeight: '44px', maxHeight: '200px' }}
+                rows={1}
+              />
+              <Button onClick={handleSubmit} disabled={isGenerating || !inputValue.trim()} className="h-[44px] w-[44px] p-0 bg-primary text-primary-foreground hover:bg-primary/90 flex-shrink-0">
+                {isGenerating ? (
+                  <div className="w-4 h-4 border-2 border-primary-foreground/30 border-t-primary-foreground animate-spin" style={{ borderRadius: '50%' }} />
+                ) : (
+                  <VscSend className="w-4 h-4" />
+                )}
+              </Button>
+            </div>
+            <div className="flex items-center justify-between mt-1.5">
+              <span className="text-[10px] text-muted-foreground font-mono">Ctrl+Enter to send</span>
+              {isGenerating && <span className="text-[10px] text-accent font-mono animate-pulse">Generating...</span>}
+            </div>
+          </div>
+        </div>
+
+        {/* Resize Divider */}
+        <div
+          className="w-[5px] flex-shrink-0 bg-border hover:bg-ring cursor-col-resize transition-colors relative group"
+          onMouseDown={() => setDividerDragging(true)}
+        >
+          <div className="absolute top-1/2 left-1/2 -translate-x-1/2 -translate-y-1/2 w-1 h-8 flex flex-col items-center justify-center gap-0.5 opacity-0 group-hover:opacity-100 transition-opacity">
+            <div className="w-0.5 h-0.5 bg-foreground" style={{ borderRadius: '50%' }} />
+            <div className="w-0.5 h-0.5 bg-foreground" style={{ borderRadius: '50%' }} />
+            <div className="w-0.5 h-0.5 bg-foreground" style={{ borderRadius: '50%' }} />
+          </div>
+        </div>
+
+        {/* Right Panel - Preview & Code */}
+        <div className="flex-1 flex flex-col h-full bg-background overflow-hidden" style={{ minWidth: '300px' }}>
+          {/* Preview Header */}
+          <div className="flex items-center justify-between px-4 py-2 border-b border-border bg-card flex-shrink-0">
+            {/* Tabs */}
+            <div className="flex items-center h-8 bg-secondary p-0.5">
+              <button
+                onClick={() => setActiveTab('preview')}
+                className={`h-7 px-3 text-xs font-mono flex items-center gap-1.5 transition-colors ${
+                  activeTab === 'preview'
+                    ? 'bg-background text-foreground'
+                    : 'text-muted-foreground hover:text-foreground'
+                }`}
+              >
+                <FiEye className="w-3 h-3" />
+                Preview
+              </button>
+              <button
+                onClick={() => setActiveTab('code')}
+                className={`h-7 px-3 text-xs font-mono flex items-center gap-1.5 transition-colors ${
+                  activeTab === 'code'
+                    ? 'bg-background text-foreground'
+                    : 'text-muted-foreground hover:text-foreground'
+                }`}
+              >
+                <VscCode className="w-3 h-3" />
+                Code
+              </button>
+            </div>
+
+            <div className="flex items-center gap-1">
+              {/* Viewport Toggles */}
+              <div className="flex items-center border border-border mr-2">
+                <button
+                  onClick={() => setViewport('desktop')}
+                  className={`p-1.5 transition-colors ${viewport === 'desktop' ? 'bg-primary text-primary-foreground' : 'text-muted-foreground hover:text-foreground hover:bg-secondary'}`}
+                  title="Desktop"
+                >
+                  <FiMonitor className="w-3.5 h-3.5" />
+                </button>
+                <button
+                  onClick={() => setViewport('tablet')}
+                  className={`p-1.5 transition-colors border-l border-r border-border ${viewport === 'tablet' ? 'bg-primary text-primary-foreground' : 'text-muted-foreground hover:text-foreground hover:bg-secondary'}`}
+                  title="Tablet"
+                >
+                  <FiTablet className="w-3.5 h-3.5" />
+                </button>
+                <button
+                  onClick={() => setViewport('mobile')}
+                  className={`p-1.5 transition-colors ${viewport === 'mobile' ? 'bg-primary text-primary-foreground' : 'text-muted-foreground hover:text-foreground hover:bg-secondary'}`}
+                  title="Mobile"
+                >
+                  <FiSmartphone className="w-3.5 h-3.5" />
+                </button>
+              </div>
+
+              {/* Actions */}
+              <Button variant="ghost" size="sm" onClick={handleCopyCode} disabled={!displayCode} className="h-7 gap-1 text-xs font-mono">
+                {copied ? <VscCheck className="w-3.5 h-3.5 text-accent" /> : <VscCopy className="w-3.5 h-3.5" />}
+              </Button>
+              <Button variant="ghost" size="sm" onClick={handleDownload} disabled={!displayCode} className="h-7 gap-1 text-xs font-mono">
+                <VscDesktopDownload className="w-3.5 h-3.5" />
+              </Button>
+            </div>
+          </div>
+
+          {/* Tab Content */}
+          <div className="flex-1 overflow-hidden">
+            {activeTab === 'preview' ? (
+              displayCode ? (
+                <div className="h-full flex items-start justify-center bg-secondary p-4 overflow-auto">
+                  <div style={{ width: viewportWidth, maxWidth: '100%', height: '100%' }} className="transition-all duration-300 bg-white shadow-sm border border-border">
+                    <iframe
+                      srcDoc={displayCode}
+                      title="Website Preview"
+                      className="w-full h-full border-0"
+                      sandbox="allow-scripts"
+                      style={{ backgroundColor: 'white' }}
+                    />
+                  </div>
+                </div>
+              ) : (
+                <EmptyPreview />
+              )
+            ) : displayCode ? (
+              <CodeViewer code={displayCode} onCopy={handleCopyCode} copied={copied} />
+            ) : (
+              <EmptyPreview />
+            )}
+          </div>
+        </div>
       </div>
 
       {/* Agent Status Bar */}
