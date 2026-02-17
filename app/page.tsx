@@ -7,6 +7,7 @@ import { Button } from '@/components/ui/button'
 import { ScrollArea } from '@/components/ui/scroll-area'
 import { VscCode, VscDesktopDownload, VscTrash, VscSend, VscCopy, VscCheck } from 'react-icons/vsc'
 import { FiMonitor, FiTablet, FiSmartphone, FiPlus, FiEye, FiTerminal } from 'react-icons/fi'
+import { PiHeartBreakFill } from 'react-icons/pi'
 
 // --- Constants ---
 const AGENT_ID = '698f00f24fde97bfe1d6bc32'
@@ -394,10 +395,10 @@ export default function Page() {
       <header className="flex items-center justify-between px-4 py-2 border-b border-border bg-card flex-shrink-0">
         <div className="flex items-center gap-3">
           <div className="flex items-center gap-2">
-            <div className="w-6 h-6 bg-primary flex items-center justify-center">
-              <VscCode className="w-3.5 h-3.5 text-primary-foreground" />
+            <div className="w-6 h-6 bg-destructive flex items-center justify-center">
+              <PiHeartBreakFill className="w-3.5 h-3.5 text-destructive-foreground" />
             </div>
-            <h1 className="text-sm font-bold font-mono tracking-wide text-foreground">WebCraft</h1>
+            <h1 className="text-sm font-bold font-mono tracking-wide text-foreground">lobable</h1>
           </div>
           <span className="text-[10px] font-mono border border-accent text-accent px-1.5 py-0 leading-4 inline-block">AI</span>
         </div>
@@ -621,7 +622,7 @@ export default function Page() {
           <div className="flex items-center gap-1.5">
             <div className={`w-1.5 h-1.5 ${activeAgentId ? 'bg-accent animate-pulse' : 'bg-muted-foreground'}`} style={{ borderRadius: '50%' }} />
             <span className="text-[10px] font-mono text-muted-foreground">
-              Website Generator Agent
+              lobable agent
             </span>
           </div>
           {activeAgentId && (
